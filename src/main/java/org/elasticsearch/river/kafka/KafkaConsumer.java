@@ -33,7 +33,7 @@ import java.util.Properties;
  */
 public class KafkaConsumer {
 
-	private final static Integer AMOUNT_OF_THREADS_PER_CONSUMER = 1;
+    private final static Integer AMOUNT_OF_THREADS_PER_CONSUMER = 1;
     private final static String GROUP_ID = "elasticsearch-kafka-river";
     private final static Integer CONSUMER_TIMEOUT = 15000;
 
