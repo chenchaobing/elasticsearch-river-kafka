@@ -32,6 +32,7 @@ public class RiverConfig {
     private static final String ZOOKEEPER_CONNECT = "zookeeper.connect";
     private static final String ZOOKEEPER_CONNECTION_TIMEOUT = "zookeeper.connection.timeout.ms";
     private static final String TOPIC = "topic";
+    private static final String TOPIC_PARTITON = "topic.partiton";
     private static final String MESSAGE_TYPE = "message.type";
 
     /* Elasticsearch config */
@@ -45,6 +46,7 @@ public class RiverConfig {
     private String zookeeperConnect;
     private int zookeeperConnectionTimeout;
     private String topic;
+    private int topicPartition;
     private MessageType messageType;
     private String indexName;
     private String typeName;
@@ -60,6 +62,7 @@ public class RiverConfig {
             Map<String, Object> kafkaSettings = (Map<String, Object>) riverSettings.settings().get("kafka");
 
             topic = (String) kafkaSettings.get(TOPIC);
+            topicPartition = XContentMapValues.nodeIntegerValue(kafkaSettings.get(TOPIC_PARTITON), 1);
             zookeeperConnect = XContentMapValues.nodeStringValue(kafkaSettings.get(ZOOKEEPER_CONNECT), "localhost");
             zookeeperConnectionTimeout = XContentMapValues.nodeIntegerValue(kafkaSettings.get(ZOOKEEPER_CONNECTION_TIMEOUT), 10000);
             messageType = MessageType.fromValue(XContentMapValues.nodeStringValue(kafkaSettings.get(MESSAGE_TYPE),
@@ -145,6 +148,10 @@ public class RiverConfig {
 
     String getTopic() {
         return topic;
+    }
+    
+    int getTopicPartition() {
+    	return topicPartition;
     }
 
     String getZookeeperConnect() {

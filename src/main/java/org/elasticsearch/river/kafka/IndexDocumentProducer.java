@@ -19,6 +19,8 @@ import kafka.message.MessageAndMetadata;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.Requests;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.ESLoggerFactory;
 import org.elasticsearch.common.xcontent.XContentFactory;
 
 import java.util.Map;
@@ -31,7 +33,16 @@ import java.util.UUID;
  * @author Mariam Hakobyan
  */
 public class IndexDocumentProducer extends ElasticSearchProducer {
-
+	
+	private static final ESLogger logger = ESLoggerFactory.getLogger(IndexDocumentProducer.class.getName());
+	
+	private static final String INDEX = "index";
+	private static final String TYPE = "type";
+	private static final String ID = "id";
+	private static final String SOURCE = "source";
+	private static final String TTL = "ttl";
+	private static final long DEFAULT_TTL = 14 * 24 * 3600 * 1000l;
+	
     public IndexDocumentProducer(Client client, RiverConfig riverConfig, KafkaConsumer kafkaConsumer) {
         super(client, riverConfig, kafkaConsumer);
     }
@@ -42,7 +53,8 @@ public class IndexDocumentProducer extends ElasticSearchProducer {
      *
      * @param messageSet given set of messages
      */
-    public void addMessagesToBulkProcessor(final Set<MessageAndMetadata> messageSet) {
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+	public void addMessagesToBulkProcessor(final Set<MessageAndMetadata> messageSet) {
 
         for (MessageAndMetadata messageAndMetadata : messageSet) {
             final byte[] messageBytes = (byte[]) messageAndMetadata.message();
@@ -50,29 +62,31 @@ public class IndexDocumentProducer extends ElasticSearchProducer {
             if (messageBytes == null || messageBytes.length == 0) return;
 
             try {
-                // TODO - future improvement - support for protobuf messages
-
                 String message = null;
                 IndexRequest request = null;
-
                 switch (riverConfig.getMessageType()) {
-                    case STRING:
-                        message = XContentFactory.jsonBuilder()
-                                .startObject()
-                                .field("value", new String(messageBytes, "UTF-8"))
-                                .endObject()
-                                .string();
-                        request = Requests.indexRequest(riverConfig.getIndexName()).
-                                type(riverConfig.getTypeName()).
-                                id(UUID.randomUUID().toString()).
-                                source(message);
-                        break;
-                    case JSON:
+	                case STRING:
+	                    message = XContentFactory.jsonBuilder()
+	                            .startObject()
+	                            .field("value", new String(messageBytes, "UTF-8"))
+	                            .endObject()
+	                            .string();
+	                    request = Requests.indexRequest(riverConfig.getIndexName()).
+	                            type(riverConfig.getTypeName()).
+	                            id(UUID.randomUUID().toString()).
+	                            source(message);
+	                    break;
+	                case JSON:
                         final Map<String, Object> messageMap = reader.readValue(messageBytes);
-                        request = Requests.indexRequest(riverConfig.getIndexName()).
-                                type(riverConfig.getTypeName()).
-                                id(UUID.randomUUID().toString()).
-                                source(messageMap);
+                        String index = (String) messageMap.get(INDEX);
+                        String type = (String) messageMap.get(TYPE);
+                        String id = (String) messageMap.get(ID);
+                        Map<String , Object> source = (Map<String , Object>)messageMap.get(SOURCE);
+                        long ttl = getTTL(messageMap);
+                        if(logger.isDebugEnabled()){
+                        	logger.debug("addMessagesToBulkProcessor , index: [" + index + "] type: [" + type + "] id: [" + id + "] source: [" + source + "] ttl: [" + ttl + "]");
+                        }
+                        request = Requests.indexRequest(index).type(type).id(id).source(source).ttl(ttl);
                 }
 
                 bulkProcessor.add(request);
@@ -81,4 +95,17 @@ public class IndexDocumentProducer extends ElasticSearchProducer {
             }
         }
     }
+    
+    private long getTTL(Map<String, Object> messageMap){
+    	long ttl = DEFAULT_TTL;
+    	Object value = messageMap.get(TTL);
+    	if(value != null && value instanceof Integer){
+    		ttl = (Integer) value;
+    	}
+    	if(value != null && value instanceof Long){
+    		ttl = (Long) value;
+    	}
+    	return ttl;
+    }
+    
 }
