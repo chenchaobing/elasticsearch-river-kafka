@@ -65,7 +65,8 @@ public class KafkaConsumer {
         props.put("group.id", GROUP_ID);
         props.put("auto.commit.enable", String.valueOf(false));
         props.put("consumer.timeout.ms", String.valueOf(CONSUMER_TIMEOUT));
-
+        props.put("key.serializer.class", "kafka.serializer.StringEncoder");
+        props.put("serializer.class", "kafka.serializer.StringEncoder");
         return new ConsumerConfig(props);
     }
 
