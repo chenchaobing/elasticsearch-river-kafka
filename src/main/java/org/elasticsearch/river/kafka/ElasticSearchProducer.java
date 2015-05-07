@@ -46,11 +46,13 @@ public abstract class ElasticSearchProducer {
     protected BulkProcessor bulkProcessor;
 
     protected RiverConfig riverConfig;
+    
+    protected GangliaMetricsFactory metricsFactory;
 
-    public ElasticSearchProducer(final Client client, final RiverConfig riverConfig, final KafkaConsumer kafkaConsumer) {
+    public ElasticSearchProducer(final Client client, final RiverConfig riverConfig, final KafkaConsumer kafkaConsumer, final GangliaMetricsFactory metricsFactory) {
         this.client = client;
         this.riverConfig = riverConfig;
-
+        this.metricsFactory = metricsFactory;
         createBulkProcessor(kafkaConsumer);
     }
 

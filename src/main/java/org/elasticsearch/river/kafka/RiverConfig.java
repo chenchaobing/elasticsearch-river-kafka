@@ -42,7 +42,11 @@ public class RiverConfig {
     private static final String CONCURRENT_REQUESTS = "concurrent.requests";
     private static final String ACTION_TYPE = "action.type";
 
-
+    /* Metric config */
+    private static final String METRICS_HOST = "usergrid.metrics.ganglia.host";
+    private static final String METRICS_PORT = "usergrid.metrics.ganglia.port";
+    private static final String WRITE_METRICS_ENABLE = "usergrid.metrics.enable";
+    
     private String zookeeperConnect;
     private int zookeeperConnectionTimeout;
     private String topic;
@@ -53,7 +57,9 @@ public class RiverConfig {
     private int bulkSize;
     private int concurrentRequests;
     private ActionType actionType;
-
+    private String metricsHost;
+    private String metricsPort;
+    private boolean writeMetricsEnable;
 
     public RiverConfig(RiverName riverName, RiverSettings riverSettings) {
 
@@ -89,6 +95,18 @@ public class RiverConfig {
             bulkSize = 100;
             concurrentRequests = 1;
             actionType = ActionType.INDEX;
+        }
+        
+        // Extract metrics related configuration
+        if (riverSettings.settings().containsKey("metrics")) {
+        	Map<String, Object> metricsSettings = (Map<String, Object>) riverSettings.settings().get("metrics");
+        	metricsHost = XContentMapValues.nodeStringValue(metricsSettings.get(METRICS_HOST), "0.0.0.0");
+        	metricsPort = XContentMapValues.nodeStringValue(metricsSettings.get(METRICS_PORT), "8677");
+        	writeMetricsEnable = XContentMapValues.nodeBooleanValue(metricsSettings.get(WRITE_METRICS_ENABLE), false);
+        } else {
+        	metricsHost = "0.0.0.0";
+        	metricsPort = "8677";
+        	writeMetricsEnable = false;
         }
     }
 
@@ -185,4 +203,17 @@ public class RiverConfig {
     ActionType getActionType() {
         return actionType;
     }
+
+	public String getMetricsHost() {
+		return metricsHost;
+	}
+
+	public String getMetricsPort() {
+		return metricsPort;
+	}
+
+	public boolean isWriteMetricsEnable() {
+		return writeMetricsEnable;
+	}
+
 }

@@ -24,6 +24,8 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.ESLoggerFactory;
 import org.elasticsearch.common.xcontent.XContentFactory;
 
+import com.codahale.metrics.Meter;
+
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -43,9 +45,16 @@ public class IndexDocumentProducer extends ElasticSearchProducer {
 	private static final String SOURCE = "source";
 	private static final String TTL = "ttl";
 	private static final long DEFAULT_TTL = 14 * 24 * 3600 * 1000l;
+	
+	private transient Meter messageInMeter;
+    private transient Meter messageSucMeter;
+	private transient Meter messageFailMeter;
 
-    public IndexDocumentProducer(Client client, RiverConfig riverConfig, KafkaConsumer kafkaConsumer) {
-        super(client, riverConfig, kafkaConsumer);
+    public IndexDocumentProducer(Client client, RiverConfig riverConfig, KafkaConsumer kafkaConsumer, GangliaMetricsFactory metricsFactory) {
+        super(client, riverConfig, kafkaConsumer , metricsFactory);
+        this.messageInMeter = metricsFactory.getMeter(IndexDocumentProducer.class, "inNum");
+        this.messageSucMeter = metricsFactory.getMeter(IndexDocumentProducer.class, "succNum");
+        this.messageFailMeter = metricsFactory.getMeter(IndexDocumentProducer.class, "failNum");
     }
 
     /**
@@ -57,6 +66,7 @@ public class IndexDocumentProducer extends ElasticSearchProducer {
     public void addMessagesToBulkProcessor(final Set<MessageAndMetadata> messageSet) {
 
         for (MessageAndMetadata messageAndMetadata : messageSet) {
+        	this.messageInMeter.mark();
             final byte[] messageBytes = (byte[]) messageAndMetadata.message();
 
             if (messageBytes == null || messageBytes.length == 0) return;
@@ -93,8 +103,10 @@ public class IndexDocumentProducer extends ElasticSearchProducer {
                 }
 
                 bulkProcessor.add(request);
+                this.messageSucMeter.mark();
             } catch (Exception ex) {
                 ex.printStackTrace();
+                this.messageFailMeter.mark();
             }
         }
     }

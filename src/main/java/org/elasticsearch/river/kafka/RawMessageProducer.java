@@ -16,9 +16,12 @@
 package org.elasticsearch.river.kafka;
 
 import kafka.message.MessageAndMetadata;
+
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.bytes.ChannelBufferBytesReference;
 import org.elasticsearch.common.netty.buffer.ByteBufferBackedChannelBuffer;
+
+import com.codahale.metrics.Meter;
 
 import java.nio.ByteBuffer;
 import java.util.Set;
@@ -29,9 +32,16 @@ import java.util.Set;
  * @author Mariam Hakobyan
  */
 public class RawMessageProducer extends ElasticSearchProducer {
+	
+	private transient Meter messageInMeter;
+    private transient Meter messageSucMeter;
+	private transient Meter messageFailMeter;
 
-    public RawMessageProducer(Client client, RiverConfig riverConfig, KafkaConsumer kafkaConsumer) {
-        super(client, riverConfig, kafkaConsumer);
+    public RawMessageProducer(Client client, RiverConfig riverConfig, KafkaConsumer kafkaConsumer, GangliaMetricsFactory metricsFactory) {
+        super(client, riverConfig, kafkaConsumer, metricsFactory);
+        this.messageInMeter = metricsFactory.getMeter(RawMessageProducer.class, "inNum");
+        this.messageSucMeter = metricsFactory.getMeter(RawMessageProducer.class, "succNum");
+        this.messageFailMeter = metricsFactory.getMeter(RawMessageProducer.class, "failNum");
     }
 
     /**
@@ -42,6 +52,7 @@ public class RawMessageProducer extends ElasticSearchProducer {
      */
     public void addMessagesToBulkProcessor(final Set<MessageAndMetadata> messageSet) {
         for (MessageAndMetadata messageAndMetadata : messageSet) {
+        	this.messageInMeter.mark();
             final byte[] messageBytes = (byte[]) messageAndMetadata.message();
             try {
                 ByteBuffer byteBuffer = ByteBuffer.wrap(messageBytes);
@@ -51,8 +62,10 @@ public class RawMessageProducer extends ElasticSearchProducer {
                         riverConfig.getIndexName(),
                         riverConfig.getTypeName()
                 );
+                this.messageSucMeter.mark();
             } catch (Exception e) {
                 e.printStackTrace();
+                this.messageFailMeter.mark();
             }
         }
     }

@@ -54,6 +54,7 @@
         <version.slf4j>1.7.2</version.slf4j>
         <version.yammer.metrics.core>2.2.0</version.yammer.metrics.core>
         <version.yammer.metrics.graphite>2.2.0</version.yammer.metrics.graphite>
+        <version.metrics>3.0.2</version.metrics>
         <version.json>20131018</version.json>
 
         <!--Plugin versions-->
@@ -117,6 +118,27 @@
             <groupId>org.apache.zookeeper</groupId>
             <artifactId>zookeeper</artifactId>
             <version>3.4.6</version>
+        </dependency>
+        
+        <dependency>
+	      <groupId>com.codahale.metrics</groupId>
+	      <artifactId>metrics-core</artifactId>
+	      <version>${version.metrics}</version>
+	    </dependency>
+        <dependency>
+          <groupId>com.codahale.metrics</groupId>
+          <artifactId>metrics-annotation</artifactId>
+          <version>${version.metrics}</version>
+        </dependency>
+	    <dependency>
+	      <groupId>com.codahale.metrics</groupId>
+	      <artifactId>metrics-ganglia</artifactId>
+	      <version>${version.metrics}</version>
+	    </dependency>
+        <dependency>
+          <groupId>com.codahale.metrics</groupId>
+          <artifactId>metrics-jvm</artifactId>
+          <version>${version.metrics}</version>
         </dependency>
     </dependencies>
 

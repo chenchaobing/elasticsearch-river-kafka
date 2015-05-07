@@ -34,6 +34,7 @@ public class KafkaRiver extends AbstractRiverComponent implements River {
     private KafkaConsumer kafkaConsumer;
     private ElasticSearchProducer elasticsearchProducer;
     private RiverConfig riverConfig;
+    private GangliaMetricsFactory metricsFactory;
 
     private Thread thread;
 
@@ -43,16 +44,17 @@ public class KafkaRiver extends AbstractRiverComponent implements River {
 
         riverConfig = new RiverConfig(riverName, riverSettings);
         kafkaConsumer = new KafkaConsumer(riverConfig);
+        metricsFactory = new GangliaMetricsFactory(riverConfig);
 
         switch (riverConfig.getActionType()) {
             case INDEX:
-                elasticsearchProducer = new IndexDocumentProducer(client, riverConfig, kafkaConsumer);
+                elasticsearchProducer = new IndexDocumentProducer(client, riverConfig, kafkaConsumer, metricsFactory);
                 break;
             case DELETE:
-                elasticsearchProducer = new DeleteDocumentProducer(client, riverConfig, kafkaConsumer);
+                elasticsearchProducer = new DeleteDocumentProducer(client, riverConfig, kafkaConsumer, metricsFactory);
                 break;
             case RAW_EXECUTE:
-                elasticsearchProducer = new RawMessageProducer(client, riverConfig, kafkaConsumer);
+                elasticsearchProducer = new RawMessageProducer(client, riverConfig, kafkaConsumer, metricsFactory);
                 break;
         }
     }

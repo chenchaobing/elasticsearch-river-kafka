@@ -16,9 +16,12 @@
 package org.elasticsearch.river.kafka;
 
 import kafka.message.MessageAndMetadata;
+
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.Requests;
+
+import com.codahale.metrics.Meter;
 
 import java.util.Map;
 import java.util.Set;
@@ -29,9 +32,16 @@ import java.util.Set;
  * @author Mariam Hakobyan
  */
 public class DeleteDocumentProducer extends ElasticSearchProducer {
+	
+	private transient Meter messageInMeter;
+    private transient Meter messageSucMeter;
+	private transient Meter messageFailMeter;
 
-    public DeleteDocumentProducer(Client client, RiverConfig riverConfig, KafkaConsumer kafkaConsumer) {
-        super(client, riverConfig, kafkaConsumer);
+    public DeleteDocumentProducer(Client client, RiverConfig riverConfig, KafkaConsumer kafkaConsumer, GangliaMetricsFactory metricsFactory) {
+        super(client, riverConfig, kafkaConsumer, metricsFactory);
+        this.messageInMeter = metricsFactory.getMeter(DeleteDocumentProducer.class, "inNum");
+        this.messageSucMeter = metricsFactory.getMeter(DeleteDocumentProducer.class, "succNum");
+        this.messageFailMeter = metricsFactory.getMeter(DeleteDocumentProducer.class, "failNum");
     }
 
     /**
@@ -43,6 +53,7 @@ public class DeleteDocumentProducer extends ElasticSearchProducer {
     public void addMessagesToBulkProcessor(final Set<MessageAndMetadata> messageSet) {
 
         for (MessageAndMetadata messageAndMetadata : messageSet) {
+        	this.messageInMeter.mark();
             final byte[] messageBytes = (byte[]) messageAndMetadata.message();
 
             if (messageBytes == null || messageBytes.length == 0) return;
@@ -58,11 +69,14 @@ public class DeleteDocumentProducer extends ElasticSearchProducer {
                             id(id);
 
                     bulkProcessor.add(request);
+                    this.messageSucMeter.mark();
                 } else {
+                	this.messageFailMeter.mark();
                     throw new IllegalArgumentException("No id provided in a message to delete a document from EL.");
                 }
             } catch (Exception ex) {
                 ex.printStackTrace();
+                this.messageFailMeter.mark();
             }
         }
     }
